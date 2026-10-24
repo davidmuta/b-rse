@@ -71,6 +71,7 @@ sealed interface Seite {
     data class NotizBearbeiten(val id: Long?) : Seite
     data object Einstellungen : Seite
     data object Links : Seite
+    data object Statistik : Seite
     data class LinkListe(val nummer: Int) : Seite
 }
 
@@ -88,7 +89,7 @@ fun BoerseApp(vm: BoerseViewModel) {
     BackHandler(enabled = seite != Seite.Start) {
         when (seite) {
             is Seite.LinkListe -> seite = Seite.Links
-            Seite.Einstellungen, Seite.Links -> {
+            Seite.Einstellungen, Seite.Links, Seite.Statistik -> {
                 seite = Seite.Start
                 menueOffen = true
             }
@@ -109,6 +110,7 @@ fun BoerseApp(vm: BoerseViewModel) {
                 Seite.Start, Seite.Notizen -> Kopfbereich(kursZustand.stand)
                 Seite.Einstellungen -> UnterseitenKopf("Einstellungen", zurueckInsMenue)
                 Seite.Links -> UnterseitenKopf("Links", zurueckInsMenue)
+                Seite.Statistik -> UnterseitenKopf("Statistik", zurueckInsMenue)
                 is Seite.LinkListe -> UnterseitenKopf(
                     titel = Linkgruppen.gruppen.getOrNull((seite as Seite.LinkListe).nummer)?.titel ?: "Links",
                     onZurueck = { seite = Seite.Links },
@@ -173,6 +175,7 @@ fun BoerseApp(vm: BoerseViewModel) {
                     onDesign = vm::setzeDesign,
                     onVerschieben = vm::verschiebe
                 )
+                Seite.Statistik -> StatistikSeite()
                 Seite.Links -> LinksSeite(onGruppe = { nummer -> seite = Seite.LinkListe(nummer) })
                 is Seite.LinkListe -> {
                     val gruppe = Linkgruppen.gruppen.getOrNull(s.nummer)
@@ -192,6 +195,10 @@ fun BoerseApp(vm: BoerseViewModel) {
             onLinks = {
                 menueOffen = false
                 seite = Seite.Links
+            },
+            onStatistik = {
+                menueOffen = false
+                seite = Seite.Statistik
             }
         )
     }
@@ -317,7 +324,7 @@ fun Fussleiste(
                 colors = farben
             )
             NavigationBarItem(
-                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe,
+                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe || seite == Seite.Statistik,
                 onClick = onMenue,
                 icon = { Icon(Icons.Filled.Menu, contentDescription = null) },
                 label = { Text("Menü") },
@@ -333,7 +340,8 @@ fun Fussleiste(
 fun Menue(
     onSchliessen: () -> Unit,
     onEinstellungen: () -> Unit,
-    onLinks: () -> Unit
+    onLinks: () -> Unit,
+    onStatistik: () -> Unit
 ) {
     val zusatz = LocalZusatzFarben.current
     ModalBottomSheet(
@@ -365,6 +373,17 @@ fun Menue(
                 titel = "Links",
                 untertitel = "Morgenroutine, Trading, Borrow-Fee's",
                 onClick = onLinks
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(start = 66.dp, end = 8.dp)
+            )
+            MenueEintrag(
+                symbol = painterResource(R.drawable.ic_statistik),
+                symbolFarbe = zusatz.lila,
+                titel = "Statistik",
+                untertitel = "Historische Daten und Statistiken",
+                onClick = onStatistik
             )
         }
     }
