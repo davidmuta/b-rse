@@ -74,6 +74,9 @@ sealed interface Seite {
     data object Links : Seite
     data object Statistik : Seite
     data object Chart : Seite
+    data object Ruecksetzer : Seite
+    data object Saison : Seite
+    data object Handelsplan : Seite
     data class LinkListe(val nummer: Int) : Seite
 }
 
@@ -83,6 +86,7 @@ fun BoerseApp(vm: BoerseViewModel) {
     val kursZustand by vm.kurse.collectAsState()
     val einstellungen by vm.einstellungen.collectAsState()
     val notizen by vm.notizen.collectAsState()
+    val checkliste by vm.checkliste.collectAsState()
 
     val context = LocalContext.current
     var seite by remember { mutableStateOf<Seite>(Seite.Start) }
@@ -92,7 +96,7 @@ fun BoerseApp(vm: BoerseViewModel) {
     BackHandler(enabled = seite != Seite.Start) {
         when (seite) {
             is Seite.LinkListe -> seite = Seite.Links
-            Seite.Chart -> seite = Seite.Statistik
+            Seite.Chart, Seite.Ruecksetzer, Seite.Saison -> seite = Seite.Statistik
             Seite.Einstellungen, Seite.Links, Seite.Statistik -> {
                 seite = Seite.Start
                 menueOffen = true
@@ -111,12 +115,22 @@ fun BoerseApp(vm: BoerseViewModel) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             when (seite) {
-                Seite.Start, Seite.Notizen -> Kopfbereich(kursZustand.stand)
+                Seite.Start, Seite.Notizen, Seite.Handelsplan -> Kopfbereich(kursZustand.stand)
                 Seite.Einstellungen -> UnterseitenKopf("Einstellungen", zurueckInsMenue)
                 Seite.Links -> UnterseitenKopf("Links", zurueckInsMenue)
                 Seite.Statistik -> UnterseitenKopf("Statistik", zurueckInsMenue)
                 Seite.Chart -> UnterseitenKopf(
                     titel = "Chart Jahresverlauf S&P 500",
+                    onZurueck = { seite = Seite.Statistik },
+                    zurueckText = "Zurück zur Statistik"
+                )
+                Seite.Ruecksetzer -> UnterseitenKopf(
+                    titel = "Rücksetzer",
+                    onZurueck = { seite = Seite.Statistik },
+                    zurueckText = "Zurück zur Statistik"
+                )
+                Seite.Saison -> UnterseitenKopf(
+                    titel = "Saisonalität",
                     onZurueck = { seite = Seite.Statistik },
                     zurueckText = "Zurück zur Statistik"
                 )
@@ -134,6 +148,7 @@ fun BoerseApp(vm: BoerseViewModel) {
                     seite = seite,
                     onStartseite = { seite = Seite.Start },
                     onIbkr = { oeffneAdresse(context, IBKR_LOGIN) },
+                    onHandelsplan = { seite = Seite.Handelsplan },
                     onNotizen = { seite = Seite.Notizen },
                     onMenue = { menueOffen = true }
                 )
@@ -185,8 +200,22 @@ fun BoerseApp(vm: BoerseViewModel) {
                     onDesign = vm::setzeDesign,
                     onVerschieben = vm::verschiebe
                 )
-                Seite.Statistik -> StatistikSeite(onChart = { seite = Seite.Chart })
+                Seite.Statistik -> StatistikSeite(
+                    onChart = { seite = Seite.Chart },
+                    onRuecksetzer = { seite = Seite.Ruecksetzer },
+                    onSaison = { seite = Seite.Saison }
+                )
                 Seite.Chart -> ChartJahresverlaufSeite()
+                Seite.Ruecksetzer -> RuecksetzerSeite()
+                Seite.Saison -> SaisonSeite()
+                Seite.Handelsplan -> HandelsplanSeite(
+                    vix = kursZustand.stand?.kurse?.get("VIX")?.preis,
+                    checkliste = checkliste,
+                    onUmschalten = vm::umschalteCheckPunkt,
+                    onLoeschen = vm::loescheCheckPunkt,
+                    onHinzufuegen = vm::fuegeCheckPunktHinzu,
+                    onZuruecksetzen = vm::setzeChecklisteZurueck
+                )
                 Seite.Links -> LinksSeite(onGruppe = { nummer -> seite = Seite.LinkListe(nummer) })
                 is Seite.LinkListe -> {
                     val gruppe = Linkgruppen.gruppen.getOrNull(s.nummer)
@@ -302,12 +331,13 @@ fun UnterseitenKopf(titel: String, onZurueck: () -> Unit, zurueckText: String = 
 /** Login-Seite von Interactive Brokers (Punkt „IBKR“ in der Fußleiste). */
 const val IBKR_LOGIN = "https://www.interactivebrokers.ie/sso/Login"
 
-/** Fußleiste: Startseite, IBKR, Notizen, Menü. */
+/** Fußleiste: Startseite, IBKR, Handelsplan, Notizen, Menü. */
 @Composable
 fun Fussleiste(
     seite: Seite,
     onStartseite: () -> Unit,
     onIbkr: () -> Unit,
+    onHandelsplan: () -> Unit,
     onNotizen: () -> Unit,
     onMenue: () -> Unit
 ) {
@@ -328,7 +358,7 @@ fun Fussleiste(
                 selected = seite == Seite.Start,
                 onClick = onStartseite,
                 icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-                label = { Text("Startseite") },
+                label = { FussText("Startseite") },
                 colors = farben
             )
             NavigationBarItem(
@@ -343,25 +373,39 @@ fun Fussleiste(
                             .clip(RoundedCornerShape(7.dp))
                     )
                 },
-                label = { Text("IBKR") },
+                label = { FussText("IBKR") },
+                colors = farben
+            )
+            NavigationBarItem(
+                selected = seite == Seite.Handelsplan,
+                onClick = onHandelsplan,
+                icon = { Icon(painterResource(R.drawable.ic_handelsplan), contentDescription = null) },
+                label = { FussText("Handelsplan") },
                 colors = farben
             )
             NavigationBarItem(
                 selected = seite == Seite.Notizen,
                 onClick = onNotizen,
                 icon = { Icon(painterResource(R.drawable.ic_notizen), contentDescription = null) },
-                label = { Text("Notizen") },
+                label = { FussText("Notizen") },
                 colors = farben
             )
             NavigationBarItem(
-                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe || seite == Seite.Statistik || seite == Seite.Chart,
+                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe ||
+                    seite == Seite.Statistik || seite == Seite.Chart || seite == Seite.Ruecksetzer || seite == Seite.Saison,
                 onClick = onMenue,
                 icon = { Icon(Icons.Filled.Menu, contentDescription = null) },
-                label = { Text("Menü") },
+                label = { FussText("Menü") },
                 colors = farben
             )
         }
     }
+}
+
+/** Beschriftung in der Fußleiste: eine Zeile, ohne Sperrung, damit „Handelsplan“ bei fünf Punkten passt. */
+@Composable
+private fun FussText(text: String) {
+    Text(text, fontSize = 12.sp, letterSpacing = 0.sp, maxLines = 1, softWrap = false)
 }
 
 /** Menü als Fenster von unten mit „Einstellungen“ und „Links“. */

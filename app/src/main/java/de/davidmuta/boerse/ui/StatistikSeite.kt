@@ -62,64 +62,64 @@ import java.time.LocalDate
 
 /** Statistik: Liste der verfügbaren Statistiken. */
 @Composable
-fun StatistikSeite(onChart: () -> Unit) {
-    val zusatz = LocalZusatzFarben.current
+fun StatistikSeite(onChart: () -> Unit, onRuecksetzer: () -> Unit, onSaison: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item(key = "chart") {
-            Surface(
-                onClick = onChart,
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .heightIn(min = 72.dp)
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(zusatz.lila.copy(alpha = 0.14f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_kurs),
-                            contentDescription = null,
-                            tint = zusatz.lila,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text("Chart Jahresverlauf S&P 500", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Text(
-                            "Durchschnitt der letzten 20 Jahre",
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            StatistikEintrag(R.drawable.ic_kurs, "Chart Jahresverlauf S&P 500", "Durchschnitt der letzten 20 Jahre", onChart)
         }
-        item(key = "hinweis") {
-            Text(
-                "Weitere Statistiken folgen.",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+        item(key = "ruecksetzer") {
+            StatistikEintrag(R.drawable.ic_ruecksetzer, "Rücksetzer im Jahresverlauf", "S&P 500 · 1928–2025", onRuecksetzer)
+        }
+        item(key = "saison") {
+            StatistikEintrag(R.drawable.ic_kalender, "Saisonalität nach Monat", "S&P 500 · 1964–2024", onSaison)
+        }
+    }
+}
+
+/** Ein Eintrag der Statistik-Liste: lila Symbol, Titel, Untertitel, Pfeil. */
+@Composable
+private fun StatistikEintrag(symbol: Int, titel: String, untertitel: String, onClick: () -> Unit) {
+    val zusatz = LocalZusatzFarben.current
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = 72.dp)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(zusatz.lila.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(symbol),
+                    contentDescription = null,
+                    tint = zusatz.lila,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Text(titel, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text(untertitel, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

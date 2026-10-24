@@ -6,7 +6,9 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,10 +100,37 @@ private fun LinkKarte(link: LinkEintrag, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .heightIn(min = 64.dp)
-                .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Favicon der Webseite in einer weißen Kachel (auch im dunklen Design weiß, damit es gut lesbar bleibt).
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                val favicon = faviconFuer(link.adresse)
+                if (favicon != null) {
+                    Image(
+                        painter = painterResource(favicon),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                    )
+                } else {
+                    Icon(
+                        painterResource(R.drawable.ic_link),
+                        contentDescription = null,
+                        tint = Color(0xFF4B5563),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             Column(Modifier.weight(1f)) {
                 Text(link.titel, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 Text(
@@ -175,6 +204,23 @@ private fun symbolFarbe(s: LinkSymbol): Color = when (s) {
     LinkSymbol.KURS -> MaterialTheme.colorScheme.primary
     LinkSymbol.PROZENT -> LocalZusatzFarben.current.gruen
 }
+
+/** Fest eingebaute Favicons der Webseiten (einmalig am 24.10.2026 von den Seiten übernommen). */
+private val favicons: Map<String, Int> = mapOf(
+    "stockcharts.com" to R.drawable.favicon_stockcharts,
+    "cnn.com" to R.drawable.favicon_cnn,
+    "cboe.com" to R.drawable.favicon_cboe,
+    "barchart.com" to R.drawable.favicon_barchart,
+    "finviz.com" to R.drawable.favicon_finviz,
+    "aaii.com" to R.drawable.favicon_aaii,
+    "volchart.io" to R.drawable.favicon_volchart,
+    "market-bulls.com" to R.drawable.favicon_market_bulls,
+    "cmegroup.com" to R.drawable.favicon_cmegroup,
+    "optionstrat.com" to R.drawable.favicon_optionstrat,
+    "chartexchange.com" to R.drawable.favicon_chartexchange
+)
+
+private fun faviconFuer(adresse: String): Int? = favicons[seitenName(adresse)]
 
 /** „https://www.finviz.com/groups“ → „finviz.com“ */
 private fun seitenName(adresse: String): String {

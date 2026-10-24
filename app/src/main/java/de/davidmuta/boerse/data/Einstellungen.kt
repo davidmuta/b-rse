@@ -20,7 +20,7 @@ enum class Design(val bezeichnung: String) {
 data class Einstellungen(
     val aktualisierung: Aktualisierung = Aktualisierung.MIN_15,
     val design: Design = Design.HELL,
-    val reihenfolge: List<String> = Werte.alle.map { it.kuerzel }
+    val reihenfolge: List<String> = Werte.startseite.map { it.kuerzel }
 )
 
 /** Speichert die Einstellungen dauerhaft auf dem Handy. */
@@ -34,13 +34,15 @@ class EinstellungenSpeicher(context: Context) {
         val design = Design.entries
             .firstOrNull { it.name == prefs.getString("design", null) }
             ?: Design.HELL
-        // Gespeicherte Reihenfolge übernehmen, neue Werte hinten anhängen, unbekannte weglassen.
+        // Gespeicherte Reihenfolge übernehmen, neue Werte hinten anhängen,
+        // unbekannte und nicht mehr gezeigte (z. B. VIX3M) weglassen.
+        val startseite = Werte.startseite.map { it.kuerzel }
         val gespeichert = prefs.getString("reihenfolge", null)
             ?.split(",")
-            ?.filter { Werte.nachKuerzel(it) != null }
+            ?.filter { it in startseite }
             ?.distinct()
             ?: emptyList()
-        val reihenfolge = gespeichert + Werte.alle.map { it.kuerzel }.filter { it !in gespeichert }
+        val reihenfolge = gespeichert + startseite.filter { it !in gespeichert }
         return Einstellungen(aktualisierung, design, reihenfolge)
     }
 

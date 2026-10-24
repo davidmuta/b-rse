@@ -1,6 +1,6 @@
 # Börse
 
-Private Android-App: VIX, VVIX, VIX3M und SPY auf einen Blick, Spread VIX/VIX3M, Notizen.
+Private Android-App: VIX, VVIX und SPY auf einen Blick, Spread VIX/VIX3M, Handelsplan mit Checkliste, Notizen, Links und Statistiken.
 
 ## Neueste Version installieren
 

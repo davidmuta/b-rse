@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.davidmuta.boerse.data.Aktualisierung
 import de.davidmuta.boerse.data.CboeKursQuelle
+import de.davidmuta.boerse.data.CheckPunkt
+import de.davidmuta.boerse.data.ChecklistenSpeicher
 import de.davidmuta.boerse.data.Design
 import de.davidmuta.boerse.data.Einstellungen
 import de.davidmuta.boerse.data.EinstellungenSpeicher
@@ -51,6 +53,10 @@ class BoerseViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _notizen = MutableStateFlow(notizenSpeicher.lade().sortedByDescending { it.erstelltUm })
     val notizen: StateFlow<List<Notiz>> = _notizen.asStateFlow()
+
+    private val checklistenSpeicher = ChecklistenSpeicher(app)
+    private val _checkliste = MutableStateFlow(checklistenSpeicher.lade())
+    val checkliste: StateFlow<List<CheckPunkt>> = _checkliste.asStateFlow()
 
     private val ladeSperre = Mutex()
     private var automatik: Job? = null
@@ -172,5 +178,29 @@ class BoerseViewModel(app: Application) : AndroidViewModel(app) {
         val sortiert = liste.sortedByDescending { it.erstelltUm }
         _notizen.value = sortiert
         viewModelScope.launch(Dispatchers.IO) { notizenSpeicher.speichere(sortiert) }
+    }
+
+    // ---------- Handelsplan: Checkliste ----------
+
+    /** Hakt einen Punkt ab bzw. nimmt den Haken wieder weg. */
+    fun umschalteCheckPunkt(id: Long) = setzeCheckliste(
+        _checkliste.value.map { if (it.id == id) it.copy(erledigt = !it.erledigt) else it }
+    )
+
+    fun loescheCheckPunkt(id: Long) = setzeCheckliste(_checkliste.value.filterNot { it.id == id })
+
+    /** Hängt einen neuen Punkt ans Ende an. Leerer Text wird ignoriert. */
+    fun fuegeCheckPunktHinzu(text: String) {
+        val t = text.trim()
+        if (t.isEmpty()) return
+        setzeCheckliste(_checkliste.value + CheckPunkt(id = System.currentTimeMillis(), text = t, erledigt = false))
+    }
+
+    /** Entfernt alle Haken – die Punkte bleiben (für den nächsten Trade). */
+    fun setzeChecklisteZurueck() = setzeCheckliste(_checkliste.value.map { it.copy(erledigt = false) })
+
+    private fun setzeCheckliste(liste: List<CheckPunkt>) {
+        _checkliste.value = liste
+        viewModelScope.launch(Dispatchers.IO) { checklistenSpeicher.speichere(liste) }
     }
 }

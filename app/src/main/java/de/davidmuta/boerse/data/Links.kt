@@ -35,7 +35,7 @@ object LinkListe {
             symbol = LinkSymbol.KURS,
             links = listOf(
                 LinkEintrag("Fear & Greed Index", "https://edition.cnn.com/markets/fear-and-greed"),
-                LinkEintrag("Volchart", "https://volchart.io/"),
+                LinkEintrag("VIX Terminstrukturkurve", "https://volchart.io/"),
                 LinkEintrag("OptionStrat", "https://optionstrat.com/")
             )
         ),
