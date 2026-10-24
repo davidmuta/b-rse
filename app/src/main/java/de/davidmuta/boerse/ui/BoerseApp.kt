@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,6 +73,7 @@ sealed interface Seite {
     data object Einstellungen : Seite
     data object Links : Seite
     data object Statistik : Seite
+    data object Chart : Seite
     data class LinkListe(val nummer: Int) : Seite
 }
 
@@ -82,6 +84,7 @@ fun BoerseApp(vm: BoerseViewModel) {
     val einstellungen by vm.einstellungen.collectAsState()
     val notizen by vm.notizen.collectAsState()
 
+    val context = LocalContext.current
     var seite by remember { mutableStateOf<Seite>(Seite.Start) }
     var menueOffen by remember { mutableStateOf(false) }
 
@@ -89,6 +92,7 @@ fun BoerseApp(vm: BoerseViewModel) {
     BackHandler(enabled = seite != Seite.Start) {
         when (seite) {
             is Seite.LinkListe -> seite = Seite.Links
+            Seite.Chart -> seite = Seite.Statistik
             Seite.Einstellungen, Seite.Links, Seite.Statistik -> {
                 seite = Seite.Start
                 menueOffen = true
@@ -111,6 +115,11 @@ fun BoerseApp(vm: BoerseViewModel) {
                 Seite.Einstellungen -> UnterseitenKopf("Einstellungen", zurueckInsMenue)
                 Seite.Links -> UnterseitenKopf("Links", zurueckInsMenue)
                 Seite.Statistik -> UnterseitenKopf("Statistik", zurueckInsMenue)
+                Seite.Chart -> UnterseitenKopf(
+                    titel = "Chart Jahresverlauf S&P 500",
+                    onZurueck = { seite = Seite.Statistik },
+                    zurueckText = "Zurück zur Statistik"
+                )
                 is Seite.LinkListe -> UnterseitenKopf(
                     titel = Linkgruppen.gruppen.getOrNull((seite as Seite.LinkListe).nummer)?.titel ?: "Links",
                     onZurueck = { seite = Seite.Links },
@@ -124,6 +133,7 @@ fun BoerseApp(vm: BoerseViewModel) {
                 Fussleiste(
                     seite = seite,
                     onStartseite = { seite = Seite.Start },
+                    onIbkr = { oeffneAdresse(context, IBKR_LOGIN) },
                     onNotizen = { seite = Seite.Notizen },
                     onMenue = { menueOffen = true }
                 )
@@ -175,7 +185,8 @@ fun BoerseApp(vm: BoerseViewModel) {
                     onDesign = vm::setzeDesign,
                     onVerschieben = vm::verschiebe
                 )
-                Seite.Statistik -> StatistikSeite()
+                Seite.Statistik -> StatistikSeite(onChart = { seite = Seite.Chart })
+                Seite.Chart -> ChartJahresverlaufSeite()
                 Seite.Links -> LinksSeite(onGruppe = { nummer -> seite = Seite.LinkListe(nummer) })
                 is Seite.LinkListe -> {
                     val gruppe = Linkgruppen.gruppen.getOrNull(s.nummer)
@@ -288,11 +299,15 @@ fun UnterseitenKopf(titel: String, onZurueck: () -> Unit, zurueckText: String = 
     }
 }
 
-/** Fußleiste: Startseite links, Notizen in der Mitte, Menü rechts. */
+/** Login-Seite von Interactive Brokers (Punkt „IBKR“ in der Fußleiste). */
+const val IBKR_LOGIN = "https://www.interactivebrokers.ie/sso/Login"
+
+/** Fußleiste: Startseite, IBKR, Notizen, Menü. */
 @Composable
 fun Fussleiste(
     seite: Seite,
     onStartseite: () -> Unit,
+    onIbkr: () -> Unit,
     onNotizen: () -> Unit,
     onMenue: () -> Unit
 ) {
@@ -317,6 +332,21 @@ fun Fussleiste(
                 colors = farben
             )
             NavigationBarItem(
+                selected = false,
+                onClick = onIbkr,
+                icon = {
+                    Image(
+                        painter = painterResource(R.drawable.ibkr_logo),
+                        contentDescription = "Interactive Brokers Login öffnen",
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                    )
+                },
+                label = { Text("IBKR") },
+                colors = farben
+            )
+            NavigationBarItem(
                 selected = seite == Seite.Notizen,
                 onClick = onNotizen,
                 icon = { Icon(painterResource(R.drawable.ic_notizen), contentDescription = null) },
@@ -324,7 +354,7 @@ fun Fussleiste(
                 colors = farben
             )
             NavigationBarItem(
-                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe || seite == Seite.Statistik,
+                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe || seite == Seite.Statistik || seite == Seite.Chart,
                 onClick = onMenue,
                 icon = { Icon(Icons.Filled.Menu, contentDescription = null) },
                 label = { Text("Menü") },

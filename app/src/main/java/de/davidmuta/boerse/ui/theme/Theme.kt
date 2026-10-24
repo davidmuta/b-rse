@@ -16,6 +16,7 @@ data class ZusatzFarben(
     val minusText: Color,
     val gruen: Color,
     val lila: Color,
+    val heute: Color,
     val spreadStreifen: Color
 )
 
@@ -26,6 +27,7 @@ private val HellZusatz = ZusatzFarben(
     minusText = Color(0xFF991B1B),
     gruen = Color(0xFF0F766E),
     lila = Color(0xFF7C3AED),
+    heute = Color(0xFFC2410C),
     spreadStreifen = Color(0xFF374151)
 )
 
@@ -36,6 +38,7 @@ private val DunkelZusatz = ZusatzFarben(
     minusText = Color(0xFFFECACA),
     gruen = Color(0xFF2DD4BF),
     lila = Color(0xFFA78BFA),
+    heute = Color(0xFFFB923C),
     spreadStreifen = Color(0xFF9CA3AF)
 )
 
