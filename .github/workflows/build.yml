@@ -1,0 +1,51 @@
+name: App bauen
+
+# Läuft bei jeder Änderung im Hauptzweig und lässt sich auch per Hand starten.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+
+      - name: Java 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: APK bauen
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: APK umbenennen
+        run: cp app/build/outputs/apk/debug/app-debug.apk boerse.apk
+
+      - name: APK zusätzlich als Bau-Ergebnis ablegen
+        uses: actions/upload-artifact@v4
+        with:
+          name: boerse-apk
+          path: boerse.apk
+
+      - name: Als "Neueste Testversion" veröffentlichen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete testversion --yes --cleanup-tag || true
+          gh release create testversion boerse.apk \
+            --title "Neueste Testversion (Bau ${GITHUB_RUN_NUMBER})" \
+            --notes "Automatisch gebaut am $(TZ=Europe/Berlin date '+%d.%m.%Y um %H:%M Uhr'). Zum Installieren unten auf boerse.apk tippen." \
+            --prerelease \
+            --target "$GITHUB_SHA"
