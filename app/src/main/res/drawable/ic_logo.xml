@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo im Kopfbereich: Kurslinie, Variante B (blaue Linie auf Weiß mit grauem Rand) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="44dp" android:height="44dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M26,1H82A25,25 0,0 1,107 26V82A25,25 0,0 1,82 107H26A25,25 0,0 1,1 82V26A25,25 0,0 1,26 1Z" android:fillColor="#FFFFFFFF" android:strokeColor="#FFD1D5DB" android:strokeWidth="2" />
+    <path android:pathData="M22,74L42,52L56,64L84,36" android:fillColor="#00000000" android:strokeColor="#FF1D4ED8" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M66,36L84,36L84,54" android:fillColor="#00000000" android:strokeColor="#FF1D4ED8" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

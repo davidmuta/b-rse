@@ -2,64 +2,54 @@ package de.davidmuta.boerse
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import de.davidmuta.boerse.data.Design
+import de.davidmuta.boerse.ui.BoerseApp
+import de.davidmuta.boerse.ui.theme.BoerseTheme
+import de.davidmuta.boerse.viewmodel.BoerseViewModel
 
-// Erste Version (Meilenstein 1): zeigt nur, dass Bau und Installation funktionieren.
 class MainActivity : ComponentActivity() {
+
+    private val vm: BoerseViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF1D4ED8))) {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF3F5F9)) {
-                    Willkommen()
-                }
+            val einstellungen by vm.einstellungen.collectAsState()
+            val dunkel = when (einstellungen.design) {
+                Design.HELL -> false
+                Design.DUNKEL -> true
+                Design.SYSTEM -> isSystemInDarkTheme()
+            }
+            // Farbe der Symbole in der Statusleiste (Uhr, Akku) passend zum gewählten Design.
+            DisposableEffect(dunkel) {
+                val transparent = android.graphics.Color.TRANSPARENT
+                val stil = if (dunkel) SystemBarStyle.dark(transparent)
+                else SystemBarStyle.light(transparent, transparent)
+                enableEdgeToEdge(statusBarStyle = stil, navigationBarStyle = stil)
+                onDispose { }
+            }
+            BoerseTheme(dunkel = dunkel) {
+                BoerseApp(vm)
             }
         }
     }
-}
 
-@Composable
-fun Willkommen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Börse",
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF1D4ED8)
-        )
-        Text(
-            text = "Installation erfolgreich",
-            fontSize = 18.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 12.dp)
-        )
-        Text(
-            text = "Version " + BuildConfig.VERSION_NAME,
-            fontSize = 14.sp,
-            color = Color(0xFF4B5563),
-            modifier = Modifier.padding(top = 8.dp)
-        )
+    override fun onStart() {
+        super.onStart()
+        vm.appSichtbar()
+    }
+
+    override fun onStop() {
+        vm.appUnsichtbar()
+        super.onStop()
     }
 }
