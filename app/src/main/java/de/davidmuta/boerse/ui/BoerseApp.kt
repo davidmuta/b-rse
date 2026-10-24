@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.davidmuta.boerse.R
 import de.davidmuta.boerse.data.KursStand
+import de.davidmuta.boerse.data.LinkListe as Linkgruppen
 import de.davidmuta.boerse.ui.theme.LocalZusatzFarben
 import de.davidmuta.boerse.viewmodel.BoerseViewModel
 
@@ -70,6 +71,7 @@ sealed interface Seite {
     data class NotizBearbeiten(val id: Long?) : Seite
     data object Einstellungen : Seite
     data object Links : Seite
+    data class LinkListe(val nummer: Int) : Seite
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,9 +84,10 @@ fun BoerseApp(vm: BoerseViewModel) {
     var seite by remember { mutableStateOf<Seite>(Seite.Start) }
     var menueOffen by remember { mutableStateOf(false) }
 
-    // Zurück-Taste: Unterseiten führen zurück ins Menü, Notizen zur Startseite.
+    // Zurück-Taste: Link-Gruppen führen zu den Links, Unterseiten ins Menü, Notizen zur Startseite.
     BackHandler(enabled = seite != Seite.Start) {
         when (seite) {
+            is Seite.LinkListe -> seite = Seite.Links
             Seite.Einstellungen, Seite.Links -> {
                 seite = Seite.Start
                 menueOffen = true
@@ -106,6 +109,11 @@ fun BoerseApp(vm: BoerseViewModel) {
                 Seite.Start, Seite.Notizen -> Kopfbereich(kursZustand.stand)
                 Seite.Einstellungen -> UnterseitenKopf("Einstellungen", zurueckInsMenue)
                 Seite.Links -> UnterseitenKopf("Links", zurueckInsMenue)
+                is Seite.LinkListe -> UnterseitenKopf(
+                    titel = Linkgruppen.gruppen.getOrNull((seite as Seite.LinkListe).nummer)?.titel ?: "Links",
+                    onZurueck = { seite = Seite.Links },
+                    zurueckText = "Zurück zu den Links"
+                )
                 is Seite.NotizBearbeiten -> Unit
             }
         },
@@ -165,7 +173,11 @@ fun BoerseApp(vm: BoerseViewModel) {
                     onDesign = vm::setzeDesign,
                     onVerschieben = vm::verschiebe
                 )
-                Seite.Links -> LinksSeite()
+                Seite.Links -> LinksSeite(onGruppe = { nummer -> seite = Seite.LinkListe(nummer) })
+                is Seite.LinkListe -> {
+                    val gruppe = Linkgruppen.gruppen.getOrNull(s.nummer)
+                    if (gruppe != null) LinkGruppeSeite(gruppe)
+                }
             }
         }
     }
@@ -249,7 +261,7 @@ fun Kopfbereich(stand: KursStand?) {
 
 /** Kopf für Unterseiten aus dem Menü: Pfeil zurück und Titel. */
 @Composable
-fun UnterseitenKopf(titel: String, onZurueck: () -> Unit) {
+fun UnterseitenKopf(titel: String, onZurueck: () -> Unit, zurueckText: String = "Zurück zum Menü") {
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column {
             Row(
@@ -260,7 +272,7 @@ fun UnterseitenKopf(titel: String, onZurueck: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onZurueck) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück zum Menü")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = zurueckText)
                 }
                 Text(titel, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             }
@@ -305,7 +317,7 @@ fun Fussleiste(
                 colors = farben
             )
             NavigationBarItem(
-                selected = seite == Seite.Einstellungen || seite == Seite.Links,
+                selected = seite == Seite.Einstellungen || seite == Seite.Links || seite is Seite.LinkListe,
                 onClick = onMenue,
                 icon = { Icon(Icons.Filled.Menu, contentDescription = null) },
                 label = { Text("Menü") },
@@ -351,7 +363,7 @@ fun Menue(
                 symbol = painterResource(R.drawable.ic_link),
                 symbolFarbe = zusatz.gruen,
                 titel = "Links",
-                untertitel = "Gespeicherte Webseiten öffnen",
+                untertitel = "Morgenroutine, Trading, Borrow-Fee's",
                 onClick = onLinks
             )
         }
